@@ -1,0 +1,10 @@
+syntax = "proto3";
+package post;
+
+message Proof {
+    int32 hashType = 1;
+    uint64 x = 2;
+    uint64 y = 3;
+    int32 k = 4;
+}
+  
