@@ -32,20 +32,6 @@ func TestHPfalseProof(t *testing.T) {
 	assert.False(t, ret)
 }
 
-func TestHPwrongProof(t *testing.T) {
-	inp := []byte("hello world")
-	p := NewHashPost(crypto.SHA3_512)
-	prf, _ := proto.Marshal(&Proof{
-		HashType: int32(crypto.SHA3_512),
-		X:        0,
-		Y:        1,
-		K:        7,
-	})
-	ret, err := p.Ver(inp, prf)
-	assert.Error(t, err)
-	assert.False(t, ret)
-}
-
 func TestHPNoImportProof(t *testing.T) {
 	inp := []byte("hello world")
 	p := NewHashPost(crypto.SHA3_512)
@@ -80,12 +66,4 @@ func TestHPNotRealProof(t *testing.T) {
 	ret, err := p.Ver(inp, []byte("someRanomProof"))
 	assert.Error(t, err)
 	assert.False(t, ret)
-}
-
-func TestHPpanicOnK8(t *testing.T) {
-	inp := []byte("hello world")
-	p := NewHashPost(crypto.SHA3_512)
-	assert.Panics(t, func() {
-		p.Gen(7, inp)
-	})
 }
