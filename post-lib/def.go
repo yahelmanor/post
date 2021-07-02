@@ -32,10 +32,11 @@ func NewHashPost(h crypto.Hash) PoST {
 }
 
 func (hp hashPost) Gen(k int, inp []byte) (proof []byte) {
-	if k&7 != 0 {
-		panic("k must be multipicion of 8")
+	if k > 8*(hp.h.Size()) {
+		panic("k must be of size smaller then hash output")
 	}
-	k8 := k / 8
+	k8 := (k + 7) / 8
+	mask := byte(1<<(1+(k+7)%8) - 1)
 	hp.h.Reset()
 	hp.h.Write(inp)
 	out := hp.h.Sum(nil)
@@ -45,6 +46,7 @@ func (hp hashPost) Gen(k int, inp []byte) (proof []byte) {
 		binary.Write(hp.h, binary.BigEndian, i)
 		hp.h.Write(out)
 		out2 := hp.h.Sum(nil)
+		out2[k8] &= mask
 		if v, ok := mem[string(out2[:k8])]; ok {
 			ret, err := proto.Marshal(&Proof{
 				HashType: int32(hp.u),
@@ -70,10 +72,14 @@ func (hp hashPost) Ver(inp []byte, proof []byte) (bool, error) {
 	if err := proto.Unmarshal(proof, &prf); err != nil {
 		return false, err
 	}
-	if prf.K&7 != 0 {
-		return false, fmt.Errorf("k in the proof isnt of lenght divisble by 8")
+	// if prf.K&7 != 0 {
+	// return false, fmt.Errorf("k in the proof isnt of lenght divisble by 8")
+	// }
+	if prf.K > 8*int32(hp.h.Size()) {
+		return false, fmt.Errorf("k in the proof is of size bigger then hash output")
 	}
 	k8 := prf.K / 8
+	mask := byte(1<<(prf.K&7) - 1)
 	if !(crypto.Hash(prf.HashType)).Available() {
 		return false, fmt.Errorf("the hash type %v isn't available", (crypto.Hash(prf.HashType)).String())
 	}
@@ -95,5 +101,5 @@ func (hp hashPost) Ver(inp []byte, proof []byte) (bool, error) {
 	binary.Write(h, binary.BigEndian, prf.Y)
 	h.Write(out)
 	o2 := h.Sum(nil)
-	return bytes.Equal(o1[:k8], o2[:k8]), nil
+	return bytes.Equal(o1[:k8], o2[:k8]) && (mask == 0 || (o1[k8]&mask == o2[k8]&mask)), nil
 }
